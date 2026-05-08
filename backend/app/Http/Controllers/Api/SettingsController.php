@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Empresa;
+use App\Services\SupportGenOmn\CompanyDirectory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class SettingsController extends ApiController
 {
+    public function __construct(private readonly CompanyDirectory $companyDirectory)
+    {
+    }
+
     public function show(): JsonResponse
     {
         $empresa = $this->currentEmpresa();
@@ -26,6 +31,7 @@ class SettingsController extends ApiController
 
         $empresa = $this->currentEmpresa() ?? new Empresa();
         $empresa = $this->fillEmpresaFromSettings($empresa, $data);
+        $this->companyDirectory->syncPrimaryCompanyWithEmpresa($empresa);
         $this->invalidateBootstrapCache();
 
         return response()->json($this->mapSettings($empresa), 201);
@@ -40,6 +46,7 @@ class SettingsController extends ApiController
 
         $data = $this->validateSettings($request);
         $empresa = $this->fillEmpresaFromSettings($empresa, $data);
+        $this->companyDirectory->syncPrimaryCompanyWithEmpresa($empresa);
         $this->invalidateBootstrapCache();
 
         return response()->json($this->mapSettings($empresa));
@@ -53,13 +60,14 @@ class SettingsController extends ApiController
         }
 
         $data = $this->validateInstitutionalSettings($request);
+        $aboutTeam = $this->sanitizeAboutTeam($data['aboutTeam'] ?? []);
 
         $empresa->fill([
             'landing_banner_image' => $data['landingBannerImage'] ?? null,
             'about_story' => $data['aboutStory'] ?? null,
             'about_mission' => $data['aboutMission'] ?? null,
             'about_vision' => $data['aboutVision'] ?? null,
-            'about_team_json' => $data['aboutTeam'] ?? [],
+            'about_team_json' => $aboutTeam,
         ]);
         $empresa->save();
 
@@ -157,5 +165,20 @@ class SettingsController extends ApiController
             'aboutTeam.*.role' => ['required_with:aboutTeam', 'string'],
             'aboutTeam.*.photo' => ['nullable', 'string'],
         ]);
+    }
+
+    private function sanitizeAboutTeam(array $team): array
+    {
+        return collect($team)
+            ->map(function (array $member): array {
+                return [
+                    'name' => trim((string) ($member['name'] ?? '')),
+                    'role' => trim((string) ($member['role'] ?? '')),
+                    'photo' => trim((string) ($member['photo'] ?? '')),
+                ];
+            })
+            ->filter(fn (array $member): bool => $member['name'] !== '' || $member['role'] !== '' || $member['photo'] !== '')
+            ->values()
+            ->all();
     }
 }

@@ -18,7 +18,7 @@ const forcedContext = import.meta.env.VITE_FORCE_CONTEXT as 'app' | 'admin' | un
 
 const isAdminHost = hostname === adminHost;
 const isAppHost = hostname === appHost;
-const isDevAdminRoute = isLocalhost && (pathname.startsWith('/admin') || port === '3001');
+const isDevAdminRoute = isLocalhost && (pathname.startsWith('/admin') || port === '3002');
 
 const isAdminContext = forcedContext === 'admin'
   ? true

@@ -82,6 +82,22 @@ export function AdminApp() {
     setPanelNotice({ type, message });
   };
 
+  const clearAdminSession = () => {
+    sessionStorage.removeItem('support_genomn_admin_token');
+    sessionStorage.removeItem('support_genomn_admin_actor_id');
+    setToken(null);
+    setActorId(null);
+  };
+
+  const sanitizeAboutTeam = (team?: LaundrySettings['aboutTeam']) =>
+    (team ?? [])
+      .map((member) => ({
+        name: member.name.trim(),
+        role: member.role.trim(),
+        photo: member.photo?.trim() || '',
+      }))
+      .filter((member) => member.name || member.role || member.photo);
+
   const createFallbackSettings = (): LaundrySettings => ({
     companyName: 'GenOmni',
     tradeName: 'GenOmni',
@@ -115,14 +131,10 @@ export function AdminApp() {
     autoPrintReceipt: false,
     autoDownloadPDF: false,
     landingBannerImage: '',
-    aboutStory:
-      'A GenOmni nasceu com varios objetivo, e um deles é modernizar a gestão de empresas em Angola e no mundo, trazendo tecnologia, eficiência e controlo total para negócios locais.',
-    aboutMission: 'Digitalizar e otimizar operações de lavandarias através de tecnologia simples e poderosa.',
-    aboutVision: 'Ser a principal plataforma SaaS para lavandarias em África.',
-    aboutTeam: [
-      { name: 'João Silva', role: 'Backend Engineer', photo: '' },
-      { name: 'Maria Costa', role: 'Frontend Developer', photo: '' },
-    ],
+    aboutStory: '',
+    aboutMission: '',
+    aboutVision: '',
+    aboutTeam: [],
   });
 
   const loadAll = async (adminToken: string) => {
@@ -154,12 +166,10 @@ export function AdminApp() {
     const settings = payload.settings ?? createFallbackSettings();
     setInstitutionalData({
       ...settings,
-      aboutTeam: settings.aboutTeam && settings.aboutTeam.length > 0
-        ? settings.aboutTeam
-        : [
-            { name: 'João Silva', role: 'Backend Engineer', photo: '' },
-            { name: 'Maria Costa', role: 'Frontend Developer', photo: '' },
-          ],
+      aboutStory: settings.aboutStory ?? '',
+      aboutMission: settings.aboutMission ?? '',
+      aboutVision: settings.aboutVision ?? '',
+      aboutTeam: sanitizeAboutTeam(settings.aboutTeam),
     });
     setSettingsLoaded(true);
   };
@@ -180,7 +190,14 @@ export function AdminApp() {
     if (!token || !actorId) return;
     setPanelError('');
     loadAll(token).catch((error) => {
-      setPanelError(toUserErrorMessage(error, 'Não foi possível carregar o painel técnico.'));
+      const message = toUserErrorMessage(error, 'Não foi possível carregar o painel técnico.');
+      if (message === 'Sessão administrativa inválida.') {
+        clearAdminSession();
+        showPanelNotice('error', 'A sessão técnica expirou ou ficou inválida. Entre novamente.');
+        return;
+      }
+
+      setPanelError(message);
     });
     loadInstitutionalData().catch((error) => {
       setPanelError(toUserErrorMessage(error, 'Não foi possível carregar os dados institucionais.'));
@@ -255,10 +272,7 @@ export function AdminApp() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('support_genomn_admin_token');
-    sessionStorage.removeItem('support_genomn_admin_actor_id');
-    setToken(null);
-    setActorId(null);
+    clearAdminSession();
   };
 
   const handleOpenTicket = async (ticketId: number) => {
@@ -300,14 +314,19 @@ export function AdminApp() {
     if (!institutionalData) return;
     try {
       setInstitutionalSaving(true);
+      const aboutTeam = sanitizeAboutTeam(institutionalData.aboutTeam);
       const saved = await updateInstitutionalSettings({
         landingBannerImage: institutionalData.landingBannerImage,
         aboutStory: institutionalData.aboutStory,
         aboutMission: institutionalData.aboutMission,
         aboutVision: institutionalData.aboutVision,
-        aboutTeam: institutionalData.aboutTeam,
+        aboutTeam,
       });
-      setInstitutionalData((prev) => (prev ? { ...prev, ...saved } : saved));
+      setInstitutionalData((prev) =>
+        prev
+          ? { ...prev, ...saved, aboutTeam: sanitizeAboutTeam(saved.aboutTeam) }
+          : { ...saved, aboutTeam: sanitizeAboutTeam(saved.aboutTeam) }
+      );
       showPanelNotice('success', 'Conteúdo institucional atualizado com sucesso.');
     } catch (error) {
       showPanelNotice('error', toUserErrorMessage(error, 'Não foi possível guardar o conteúdo institucional.'));

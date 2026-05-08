@@ -81,7 +81,7 @@ export const Services: React.FC<ServicesProps> = ({
 
   const persistStockLinks = async (serviceId: string) => {
     const currentItems = await listStock();
-    const draftsById = new Map(stockLinks.map((draft) => [draft.stockId, draft]));
+    const draftsById = new Map<string, StockLinkDraft>(stockLinks.map((draft) => [draft.stockId, draft]));
 
     const updates = currentItems.flatMap((item) => {
       const draft = draftsById.get(item.id);

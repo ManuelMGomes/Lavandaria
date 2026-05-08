@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Services\SupportGenOmn\CompanyDirectory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UsersController extends ApiController
 {
+    public function __construct(private readonly CompanyDirectory $companyDirectory)
+    {
+    }
+
     public function index(): JsonResponse
     {
         $users = User::query()
@@ -29,15 +34,17 @@ class UsersController extends ApiController
             'status' => ['required', 'in:active,inactive'],
         ]);
 
-        $company = Company::query()->firstOrCreate(
-            ['name' => 'GenOmni Demo'],
-            [
-                'email' => 'contato@genomni.com',
+        $company = $this->companyDirectory->syncPrimaryCompanyWithEmpresa($this->currentEmpresa());
+
+        if (! $company) {
+            $company = Company::query()->create([
+                'name' => 'Default Company',
+                'email' => null,
                 'status' => 'active',
                 'license_type' => 'annual',
                 'license_expiry_date' => now()->addYear()->toDateString(),
-            ]
-        );
+            ]);
+        }
 
         $data['company_id'] = $company->id;
         $data['platform_role'] = $data['role'] === 'admin' ? 'client_admin' : 'user';

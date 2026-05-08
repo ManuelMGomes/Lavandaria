@@ -72,7 +72,7 @@ export const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f5fbff_0%,#ffffff_40%)] flex flex-col md:flex-row print:bg-white print:block">
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-white/90 backdrop-blur border-r border-[#d8eaf8] sticky top-0 h-screen print:hidden">
+      <aside className="hidden md:flex flex-col w-64 bg-white/90 backdrop-blur border-r border-[#d8eaf8] sticky top-0 h-screen overflow-hidden print:hidden">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100">
           {settings.logo ? (
             <img src={settings.logo} alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg" referrerPolicy="no-referrer" />
@@ -84,7 +84,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <span className="font-bold text-xl tracking-tight text-slate-800 truncate">{settings.tradeName || 'Sistema GenOmni'}</span>
         </div>
         
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -160,7 +160,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-[65px] bg-white z-40 p-4 animate-in slide-in-from-top duration-200 print:hidden">
+        <div className="md:hidden fixed inset-0 top-[65px] overflow-y-auto bg-white z-40 p-4 animate-in slide-in-from-top duration-200 print:hidden">
           <div className="mb-6 p-4 bg-slate-50 rounded-2xl flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 shadow-sm">
               <UserIcon className="w-6 h-6" />

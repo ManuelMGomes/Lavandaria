@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Empresa;
 use App\Models\ImpersonationSession;
 use App\Models\PasswordReset;
 use App\Models\SupportTicket;
@@ -128,5 +129,55 @@ class SupportGenOmnModuleTest extends TestCase
                 'message' => 'Mensagem',
             ])
             ->assertStatus(402);
+    }
+
+    public function test_it_syncs_admin_company_listing_with_registered_empresa(): void
+    {
+        $company = $this->makeCompany([
+            'name' => 'Placeholder Company',
+            'email' => 'placeholder@example.com',
+        ]);
+        $admin = $this->makeUser($company, [
+            'email' => 'superadmin@genomn.local',
+            'role' => 'admin',
+            'platform_role' => 'super_admin',
+        ]);
+
+        Empresa::query()->create([
+            'nome' => 'Lavanderia Central',
+            'nome_comercial' => 'Lavanderia Central',
+            'nif' => '123456789',
+            'tipo_empresa' => 'Lda',
+            'pais' => 'Angola',
+            'regime_iva' => 'geral',
+            'taxa_iva_padrao' => 14,
+            'moeda' => 'Kz',
+            'serie_fatura' => '2026',
+            'numero_inicial_fatura' => 1,
+            'modelo_fatura' => 'A4',
+            'formato_numero_fatura' => 'SERIE/NUMERO',
+            'permitir_venda_credito' => false,
+            'dias_vencimento_padrao' => 30,
+            'permitir_desconto_global' => true,
+            'tipo_conexao_impressora' => 'usb',
+            'impressao_automatica' => false,
+            'download_pdf_automatico' => false,
+            'email' => 'contato@lavanderiacentral.test',
+        ]);
+
+        $login = $this->postJson('/api/admin/auth/login', [
+            'email' => $admin->email,
+            'password' => 'secret123',
+        ])->assertOk()->json();
+
+        $response = $this
+            ->withHeader('X-Admin-Token', $login['token'])
+            ->getJson('/api/admin/companies');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.name', 'Lavanderia Central')
+            ->assertJsonPath('0.email', 'contato@lavanderiacentral.test');
     }
 }

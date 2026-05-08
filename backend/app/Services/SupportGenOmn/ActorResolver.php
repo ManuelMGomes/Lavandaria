@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 
 class ActorResolver
 {
+    public function __construct(private readonly CompanyDirectory $companyDirectory)
+    {
+    }
+
     public function fromRequest(Request $request): ?User
     {
         $actorId = $request->header('X-Actor-Id');
@@ -27,7 +31,7 @@ class ActorResolver
             }
         }
 
-        $fallback = Company::query()->first();
+        $fallback = $this->companyDirectory->syncPrimaryCompanyWithEmpresa(\App\Models\Empresa::query()->first());
         if ($fallback) {
             return $fallback;
         }

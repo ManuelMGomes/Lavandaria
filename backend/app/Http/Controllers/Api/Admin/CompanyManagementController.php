@@ -4,27 +4,45 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Company;
+use App\Models\Empresa;
 use App\Services\SupportGenOmn\AuditLogger;
+use App\Services\SupportGenOmn\CompanyDirectory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CompanyManagementController extends ApiController
 {
-    public function __construct(private readonly AuditLogger $auditLogger)
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly CompanyDirectory $companyDirectory,
+    )
     {
     }
 
     public function index(): JsonResponse
     {
-        $companies = Company::query()->latest()->get()->map(fn (Company $company) => [
+        $empresa = Empresa::query()->first();
+        $primaryCompany = $this->companyDirectory->syncPrimaryCompanyWithEmpresa($empresa);
+
+        $companies = $this->companyDirectory->listVisibleCompanies()->map(function (Company $company) use ($primaryCompany, $empresa) {
+            $displayName = $company->name;
+            $displayEmail = $company->email;
+
+            if ($empresa && $primaryCompany && $company->is($primaryCompany)) {
+                $displayName = $empresa->nome ?: $displayName;
+                $displayEmail = $empresa->email ?: $displayEmail;
+            }
+
+            return [
             'id' => $company->id,
-            'name' => $company->name,
-            'email' => $company->email,
+            'name' => $displayName,
+            'email' => $displayEmail,
             'status' => $company->status,
             'licenseType' => $company->license_type,
             'licenseExpiryDate' => optional($company->license_expiry_date)->toDateString(),
             'createdAt' => $company->created_at?->toJSON(),
-        ]);
+            ];
+        });
 
         return response()->json($companies);
     }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, ClipboardList, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '../../../components/ui/Button';
@@ -50,7 +50,7 @@ export function StockMovements({
     setNote('');
   };
 
-  const submitMovement = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitMovement = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!productId || quantity <= 0 || !mode) return;
 
