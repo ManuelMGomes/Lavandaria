@@ -7,3 +7,8 @@ frontend/node_modules/.vite/
 # General
 .DS_Store
 Thumbs.db
+
+docker/.env
+frontend/.env.development
+backend/.env
+backend/ca.pem
